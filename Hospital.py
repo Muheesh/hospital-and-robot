@@ -71,9 +71,30 @@ def View_patient():
     result = cursor.fetchall()
     return render_template("view.html", details=result)
 
-@user.route('/update')
+@user.route('/update',methods=['GET','POST'])
 def Update_patient():
+    if request.method == "POST":
+        global getNmob
+        getNmob = request.form["unumber"]
     return render_template("update.html")
+
+@user.route('/updatedetails',methods=['GET','POST'])
+def Update_details():
+    if request.method == "POST":
+        getName = request.form["newname"]
+        getAge = request.form["newage"]
+        getAddress = request.form["newaddress"]
+        getDob = request.form["newdob"]
+        getPlace = request.form["newplace"]
+        getPincode = request.form["newpincode"]
+        try:
+            data.execute("update patient set Name='"+getName+"',age="+getAge+",address='"+getAddress+"',\
+            dob='"+getDob+"',place='"+getPlace+"',pincode="+getPincode+" where Mobnumber="+getNmob+" ")
+            data.commit()
+            print("Data updated successfilly")
+        except Exception as err:
+            print("Exception occured",err)
+    return render_template("updatedetails.html")
 
 if __name__==("__main__"):
     user.run()
