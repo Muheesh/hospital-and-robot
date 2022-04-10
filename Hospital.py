@@ -1,5 +1,8 @@
 from flask import Flask, render_template,request
 import sqlite3
+
+from werkzeug.utils import redirect
+
 data = sqlite3.connect("hospital.db",check_same_thread=False)
 table = data.execute("select name from sqlite_master where type='table' and name= 'patient' ").fetchall()
 if table!=[]:
@@ -19,8 +22,13 @@ else:
     print("Table created")
 user = Flask(__name__)
 
-@user.route('/')
+@user.route('/',methods=['GET','POST'])
 def Dashboard():
+    if request.method == 'POST':
+        getuname = request.form["urname"]
+        getPass = request.form["pass"]
+        if getuname == "admin" and getPass == "1234":
+            return redirect("/dashboard")
     return render_template("login.html")
 
 @user.route('/dashboard',methods=['GET','POST'])
@@ -37,12 +45,12 @@ def Register():
             data.execute("insert into patient(Name,Mobnumber,age,address,dob,place,pincode)\
                          values('"+getName+"',"+getMobile+","+getAge+",'"+getAddress+"','"+getDob+"','"+getPlace+"',"+getPincode+")")
             data.commit()
-            print("Data inserted successfilly")
+            print("Data inserted successfully")
         except Exception as err:
             print("Exception occured",err)
     return render_template("newregister.html")
 
-@user.route('/search')
+@user.route('/search',methods=['GET','POST'])
 def Search_patient():
     if request.method == "POST":
         getMobile = request.form["number"]
@@ -50,17 +58,21 @@ def Search_patient():
         count = cursor.execute("select * from patient where Mobnumber="+getMobile)
 
         result = cursor.fetchall()
-        return render_template("view.html", details=result)
+        if result is None:
+            print("Mobile number is not registered")
+        else:
+            return render_template("search.html", search=result,status=True)
+    else:
+        return render_template("search.html",search=[],status=False)
 
-    return render_template("search.html")
-
-@user.route('/delete')
+@user.route('/delete',methods=['GET','POST'])
 def Delete_patient():
     if request.method =="POST":
         getMobile = request.form["number"]
         data.execute("delete from patient where Mobnumber="+getMobile)
         data.commit()
         print("Deleted Successfully")
+        return redirect("/viewall")
     return render_template("delete.html")
 
 @user.route('/viewall')
@@ -73,10 +85,12 @@ def View_patient():
 
 @user.route('/update',methods=['GET','POST'])
 def Update_patient():
+    global getNmob
     if request.method == "POST":
-        global getNmob
         getNmob = request.form["unumber"]
-    return render_template("update.html")
+        return redirect("/updatedetails")
+    else:
+        return render_template("update.html")
 
 @user.route('/updatedetails',methods=['GET','POST'])
 def Update_details():
@@ -91,10 +105,13 @@ def Update_details():
             data.execute("update patient set Name='"+getName+"',age="+getAge+",address='"+getAddress+"',\
             dob='"+getDob+"',place='"+getPlace+"',pincode="+getPincode+" where Mobnumber="+getNmob+" ")
             data.commit()
-            print("Data updated successfilly")
+            print("Data updated successfully")
+            return redirect('/viewall')
         except Exception as err:
             print("Exception occured",err)
-    return render_template("updatedetails.html")
+        return redirect("/viewall")
+    else:
+        return render_template("updatedetails.html")
 
 if __name__==("__main__"):
     user.run()
